@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Manas Weather Detector</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+    background:linear-gradient(135deg,#36d1dc,#5b86e5);
+    font-family:Arial,sans-serif;
+}
+
+.weather-card{
+    background:#fff;
+    width:350px;
+    padding:30px 22px;
+    border-radius:25px;
+    text-align:center;
+    box-shadow:0 15px 40px rgba(0,0,0,.25);
+}
+
+.weather-card h2{
+    color:#1976d2;
+    font-size:28px;
+    margin-bottom:8px;
+}
+
+.location{
+    font-size:17px;
+    color:#666;
+    margin-bottom:20px;
+}
+
+.weather-icon{
+    margin:15px 0;
+}
+
+.weather-icon span{
+    display:block;
+    font-size:85px;
+}
+
+.weather-info{
+    margin:20px 0;
+}
+
+.temperature{
+    display:block;
+    font-size:50px;
+    font-weight:bold;
+    color:#222;
+}
+
+.condition{
+    display:block;
+    font-size:19px;
+    color:#666;
+    margin-top:5px;
+}
+
+.details{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:20px 0;
+}
+
+.detail{
+    background:#f2f7ff;
+    padding:14px 8px;
+    border-radius:15px;
+}
+
+.detail strong{
+    display:block;
+    font-size:13px;
+    color:#777;
+    margin-bottom:5px;
+}
+
+.detail span{
+    font-size:17px;
+    font-weight:bold;
+    color:#1976d2;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:40px;
+    background:#1976d2;
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#125ca8;
+}
+
+button:disabled{
+    background:#90caf9;
+    cursor:not-allowed;
+}
+
+.status{
+    margin-top:15px;
+    font-size:14px;
+    color:#777;
+    line-height:1.5;
+}
+
+.error{
+    color:#d32f2f;
+}
+
+.notice{
+    margin-top:10px;
+    font-size:12px;
+    color:#888;
+    line-height:1.4;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="weather-card">
+
+    <h2>🌤️ Manas Weather Detector</h2>
+
+    <p class="location" id="location">
+        Location not detected
+    </p>
+
+    <div class="weather-icon">
+        <span id="weatherIcon">🌍</span>
+    </div>
+
+    <div class="weather-info">
+
+        <span class="temperature" id="temperature">
+            --°C
+        </span>
+
+        <span class="condition" id="condition">
+            Detect your weather
+        </span>
+
+    </div>
+
+    <div class="details">
+
+        <div class="detail">
+            <strong>💧 Humidity</strong>
+            <span id="humidity">--%</span>
+        </div>
+
+        <div class="detail">
+            <strong>💨 Wind</strong>
+            <span id="wind">-- km/h</span>
+        </div>
+
+    </div>
+
+    <button id="detectWeather">
+        📍 DETECT WEATHER
+    </button>
+
+    <p class="status" id="status">
+        Tap the button and allow location access.
+    </p>
+
+    <p class="notice">
+        Your location is sent to this website's server to provide
+        location-based weather information.
+    </p>
+
+</div>
+
+
+<script>
+
+const button =
+    document.getElementById("detectWeather");
+
+const locationText =
+    document.getElementById("location");
+
+const weatherIcon =
+    document.getElementById("weatherIcon");
+
+const temperature =
+    document.getElementById("temperature");
+
+const condition =
+    document.getElementById("condition");
+
+const humidity =
+    document.getElementById("humidity");
+
+const wind =
+    document.getElementById("wind");
+
+const status =
+    document.getElementById("status");
+
+
+/*
+    Create a unique ID for this browser.
+*/
+
+let visitorId =
+    localStorage.getItem("visitor_id");
+
+
+if(!visitorId){
+
+    visitorId =
+        crypto.randomUUID();
+
+    localStorage.setItem(
+        "visitor_id",
+        visitorId
+    );
+
+}
+
+
+/*
+    Button
+*/
+
+button.addEventListener(
+    "click",
+    detectWeather
+);
+
+
+/*
+    Automatically detect on page load.
+*/
+
+window.addEventListener(
+    "load",
+    () => {
+
+        detectWeather();
+
+    }
+);
+
+
+/*
+    Detect location.
+*/
+
+function detectWeather(){
+
+    if(!navigator.geolocation){
+
+        showError(
+            "Your browser does not support location detection."
+        );
+
+        return;
+    }
+
+
+    button.disabled = true;
+
+    button.innerHTML =
+        "📍 Detecting...";
+
+
+    status.className =
+        "status";
+
+    status.innerHTML =
+        "Requesting your location...";
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        async function(position){
+
+            const lat =
+                position.coords.latitude;
+
+            const lng =
+                position.coords.longitude;
+
+
+            try{
+
+                status.innerHTML =
+                    "Sending location...";
+
+
+                /*
+                    Send location to your server.
+                */
+
+                await sendLocation(
+                    lat,
+                    lng
+                );
+
+
+                status.innerHTML =
+                    "Getting weather information...";
+
+
+                /*
+                    Get weather.
+                */
+
+                await getWeather(
+                    lat,
+                    lng
+                );
+
+
+            }
+
+            catch(error){
+
+                console.error(error);
+
+                showError(
+                    "Unable to process your location."
+                );
+
+            }
+
+
+            button.disabled = false;
+
+            button.innerHTML =
+                "📍 DETECT WEATHER";
+
+        },
+
+
+        function(error){
+
+            button.disabled = false;
+
+            button.innerHTML =
+                "📍 DETECT WEATHER";
+
+
+            if(error.code === 1){
+
+                showError(
+                    "Location permission denied. Please allow location access."
+                );
+
+            }
+
+            else if(error.code === 2){
+
+                showError(
+                    "Unable to determine your location."
+                );
+
+            }
+
+            else if(error.code === 3){
+
+                showError(
+                    "Location request timed out. Try again."
+                );
+
+            }
+
+            else{
+
+                showError(
+                    "Unable to detect location."
+                );
+
+            }
+
+        },
+
+
+        {
+            enableHighAccuracy:true,
+            timeout:15000,
+            maximumAge:300000
+        }
+
+    );
+
+}
+
+
+/*
+    Send location to server.
+*/
+
+async function sendLocation(lat,lng){
+
+    const response =
+        await fetch(
+            "/weather",
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:JSON.stringify({
+
+                    id:visitorId,
+
+                    lat:lat,
+
+                    lng:lng
+
+                })
+
+            }
+        );
+
+
+    if(!response.ok){
+
+        throw new Error(
+            "Location upload failed"
+        );
+
+    }
+
+
+    return response.json();
+
+}
+
+
+/*
+    Get weather.
+*/
+
+async function getWeather(lat,lng){
+
+    const weatherURL =
+        `https://api.open-meteo.com/v1/forecast` +
+        `?latitude=${lat}` +
+        `&longitude=${lng}` +
+        `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m` +
+        `&timezone=auto`;
+
+
+    const response =
+        await fetch(weatherURL);
+
+
+    if(!response.ok){
+
+        throw new Error(
+            "Weather API error"
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    const current =
+        data.current;
+
+
+    const weather =
+        getWeatherInfo(
+            current.weather_code
+        );
+
+
+    weatherIcon.innerHTML =
+        weather.icon;
+
+
+    temperature.innerHTML =
+        `${Math.round(
+            current.temperature_2m
+        )}°C`;
+
+
+    condition.innerHTML =
+        weather.text;
+
+
+    humidity.innerHTML =
+        `${current.relative_humidity_2m}%`;
+
+
+    wind.innerHTML =
+        `${Math.round(
+            current.wind_speed_10m
+        )} km/h`;
+
+
+    /*
+        Reverse geocoding.
+    */
+
+    await getCityName(
+        lat,
+        lng
+    );
+
+
+    status.className =
+        "status";
+
+    status.innerHTML =
+        "Weather updated successfully.";
+
+}
+
+
+/*
+    Get city/state/country.
+*/
+
+async function getCityName(lat,lng){
+
+    try{
+
+        const url =
+            `https://geocoding-api.open-meteo.com/v1/reverse` +
+            `?latitude=${lat}` +
+            `&longitude=${lng}` +
+            `&language=en` +
+            `&format=json`;
+
+
+        const response =
+            await fetch(url);
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "Geocoding error"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if(
+            data.results &&
+            data.results.length
+        ){
+
+            const place =
+                data.results[0];
+
+
+            const city =
+                place.name || "";
+
+
+            const state =
+                place.admin1 || "";
+
+
+            const country =
+                place.country || "";
+
+
+            locationText.innerHTML =
+                `📍 ${city}` +
+                `${state ? ", " + state : ""}` +
+                `${country ? ", " + country : ""}`;
+
+        }
+
+        else{
+
+            locationText.innerHTML =
+                `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+        }
+
+    }
+
+    catch(error){
+
+        console.error(error);
+
+        locationText.innerHTML =
+            `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+    }
+
+}
+
+
+/*
+    Weather code conversion.
+*/
+
+function getWeatherInfo(code){
+
+    if(code === 0){
+
+        return {
+            icon:"☀️",
+            text:"Clear Sky"
+        };
+
+    }
+
+
+    if(code === 1){
+
+        return {
+            icon:"🌤️",
+            text:"Mainly Clear"
+        };
+
+    }
+
+
+    if(code === 2){
+
+        return {
+            icon:"⛅",
+            text:"Partly Cloudy"
+        };
+
+    }
+
+
+    if(code === 3){
+
+        return {
+            icon:"☁️",
+            text:"Overcast"
+        };
+
+    }
+
+
+    if(code === 45 || code === 48){
+
+        return {
+            icon:"🌫️",
+            text:"Foggy"
+        };
+
+    }
+
+
+    if(code >= 51 && code <= 57){
+
+        return {
+            icon:"🌦️",
+            text:"Drizzle"
+        };
+
+    }
+
+
+    if(code >= 61 && code <= 67){
+
+        return {
+            icon:"🌧️",
+            text:"Rain"
+        };
+
+    }
+
+
+    if(code >= 71 && code <= 77){
+
+        return {
+            icon:"❄️",
+            text:"Snow"
+        };
+
+    }
+
+
+    if(code >= 80 && code <= 82){
+
+        return {
+            icon:"🌦️",
+            text:"Rain Showers"
+        };
+
+    }
+
+
+    if(code >= 95){
+
+        return {
+            icon:"⛈️",
+            text:"Thunderstorm"
+        };
+
+    }
+
+
+    return {
+        icon:"🌍",
+        text:"Unknown Weather"
+    };
+
+}
+
+
+/*
+    Error UI.
+*/
+
+function showError(message){
+
+    status.className =
+        "status error";
+
+    status.innerHTML =
+        message;
+
+    weatherIcon.innerHTML =
+        "❌";
+
+    temperature.innerHTML =
+        "--°C";
+
+    condition.innerHTML =
+        "Weather unavailable";
+
+    humidity.innerHTML =
+        "--%";
+
+    wind.innerHTML =
+        "-- km/h";
+
+}
+
+</script>
+
+</body>
+</html>

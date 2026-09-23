@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mission Control + Live Map</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#06110a;
+color:#0f0;
+display:grid;
+grid-template-columns:300px 1fr;
+grid-template-rows:80px 1fr 180px;
+height:100vh
+}
+
+.control-header{
+
+grid-column:1/3;
+
+padding:15px;
+
+border-bottom:1px solid #00ff00;
+
+background:
+
+linear-gradient(
+90deg,
+#001000,
+#002500,
+#001000
+);
+
+box-shadow:
+
+0 0 20px #00ff00;
+
+position:relative;
+
+overflow:hidden;
+
+}
+
+
+/* Green Cyber Scrollbar */
+
+::-webkit-scrollbar {
+
+    width: 8px;
+    height: 8px;
+
+}
+
+
+::-webkit-scrollbar-track {
+
+    background:#001000;
+
+    border-left:1px solid #003300;
+
+}
+
+
+::-webkit-scrollbar-thumb {
+
+    background:#00ff00;
+
+    border-radius:10px;
+
+    box-shadow:
+    0 0 10px #00ff00;
+
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+
+    background:#33ff33;
+
+    box-shadow:
+    0 0 20px #00ff00;
+
+}
+
+
+.control-header::before{
+
+content:"";
+
+position:absolute;
+
+top:0;
+
+left:-100%;
+
+width:100%;
+
+height:2px;
+
+background:#00ff00;
+
+animation:scan 3s infinite;
+
+}
+
+
+
+@keyframes scan{
+
+0%{
+left:-100%;
+}
+
+100%{
+left:100%;
+}
+
+}
+
+
+
+.brand{
+
+font-size:22px;
+
+letter-spacing:3px;
+
+color:#00ff00;
+
+text-shadow:
+
+0 0 10px #00ff00;
+
+}
+
+
+
+.blink{
+
+color:#00ff00;
+
+animation:blink 1s infinite;
+
+}
+
+
+
+@keyframes blink{
+
+50%{
+opacity:0;
+}
+
+}
+
+
+
+.status{
+
+position:absolute;
+
+right:20px;
+
+top:20px;
+
+color:#00ff00;
+
+font-weight:bold;
+
+}
+
+
+
+.online-dot{
+
+display:inline-block;
+
+width:10px;
+
+height:10px;
+
+background:#00ff00;
+
+border-radius:50%;
+
+margin-right:5px;
+
+box-shadow:
+
+0 0 15px #00ff00;
+
+animation:pulse 1s infinite;
+
+}
+
+
+
+@keyframes pulse{
+
+50%{
+
+transform:scale(1.8);
+
+opacity:.5;
+
+}
+
+}
+
+
+
+#target-url{
+
+margin-top:12px;
+
+font-family:monospace;
+
+}
+
+
+
+#target-url a{
+
+color:#00ff00;
+
+text-decoration:none;
+
+}
+
+
+
+#target-url a:hover{
+
+text-shadow:
+
+0 0 10px #00ff00;
+
+}
+
+
+
+
+.instagram{
+position: relative;
+
+letter-spacing:normal;
+
+top: -3.5px;
+
+padding:2px 5px;
+
+border:1px solid #00ff00;
+
+border-radius:20px;
+
+color:#00ff00;
+
+text-decoration:none;
+
+font-size:12px;
+
+transition:.3s;
+
+}
+
+
+
+.instagram:hover{
+
+background:#00ff00;
+
+color:#000;
+
+box-shadow:
+
+0 0 20px #00ff00;
+
+}
+
+#target-url{
+background:#000;
+padding:8px;
+margin-top:8px;
+color:#0f0;
+}
+
+aside{
+overflow:auto;
+border-right:1px solid #0f0;
+padding:10px;
+}
+
+main{
+position:relative;
+}
+
+#map{
+height:100%;
+width:100%;
+}
+
+.card{
+padding:10px;
+border:1px solid #0f0;
+margin:8px 0;
+cursor:pointer;
+}
+
+footer{
+grid-column:1/3;
+border-top:1px solid #0f0;
+overflow:auto;
+padding:10px;
+font-family:monospace;
+}
+
+
+.leaflet-tile {
+    filter:
+    hue-rotate(70deg)
+    saturate(1.8)
+    brightness(0.8);
+}
+
+
+.leaflet-container {
+    background:#001500;
+}
+
+
+
+.pulse{
+
+width:18px;
+height:18px;
+
+background:#00ff00;
+
+border-radius:50%;
+
+box-shadow:
+0 0 10px #00ff00,
+0 0 25px #00ff00;
+
+animation:pulse 1s infinite;
+
+}
+
+
+@keyframes pulse{
+
+0%{
+transform:scale(1);
+opacity:1;
+}
+
+50%{
+transform:scale(1.8);
+opacity:.4;
+}
+
+100%{
+transform:scale(1);
+opacity:1;
+}
+
+}
+
+#log{
+
+grid-column:1/3;
+
+border-top:1px solid #0f0;
+
+display:grid;
+
+grid-template-columns:1fr 1fr;
+
+overflow:hidden;
+
+font-family:monospace;
+
+}
+
+
+.terminal-left{
+
+padding:10px;
+
+overflow:auto;
+
+border-right:1px solid #0f0;
+
+color:#0f0;
+
+}
+
+
+
+.terminal-right{
+
+position:relative;
+
+padding-left:12px;
+
+overflow:hidden;
+
+color:#00ff00;
+
+}
+
+
+
+.moving-warning{
+
+position:absolute;
+
+font-size: 14px;
+
+margin-top:0.2px;
+
+color:red;
+
+font-weight:bold;
+
+white-space:nowrap;
+
+text-shadow:
+
+0 0 10px red;
+
+
+animation:warningMove 26s linear infinite;
+
+}
+
+
+
+
+
+
+
+#hack-terminal{
+    height:120px;
+    overflow:hidden;
+    font-family:Consolas, monospace;
+    color:#00ff00;
+    line-height:1.5;
+}
+
+.hack-line{
+    white-space:pre;
+}
+
+.hack-line::after{
+    content:"_";
+    animation:blink .8s infinite;
+}
+
+@keyframes blink{
+    50%{
+        opacity:0;
+    }
+}
+
+
+
+#hack-terminal{
+    height:120px;
+    overflow:hidden;
+    background:#000;
+    color:#00ff00;
+    font-family:Consolas,monospace;
+    font-size:13px;
+    line-height:1.45;
+    padding:8px;
+    margin-top: 20px;
+    text-shadow:0 0 6px currentColor;
+}
+
+#hack-terminal div{
+    white-space:pre;
+}
+
+#hack-terminal div::after{
+    content:"_";
+    animation:blink .8s infinite;
+}
+
+@keyframes blink{
+    50%{opacity:0;}
+}
+
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<header class="control-header">
+
+    <div class="brand">
+        <span class="blink">●</span>
+        <b>MANAS LIVE TRACKER</b>
+
+         <a class="instagram"
+    href="https://instagram.com/manas.in"
+    target="_blank">
+
+    FOLLOW ON INSTAGRAM
+
+    </a>
+
+    </div>
+
+    <div class="status">
+        <span class="online-dot"></span>
+        ONLINE
+    </div>
+
+
+    <div id="target-url">
+
+        <span>
+        Copy and Send to Target :
+        </span>
+
+        <a 
+        href="{{remoteURL}}/weather"
+        target="_blank">
+
+        {{remoteURL}}/weather
+
+        </a>
+
+    </div>
+
+
+    
+
+
+</header>
+
+
+<aside>
+
+<h3>Targets</h3>
+
+<div id="targets"></div>
+
+</aside>
+
+
+
+<main>
+
+<div id="map"></div>
+
+</main>
+
+
+
+<footer id="log">
+
+    <div class="terminal-left" id="terminal-log">
+    </div>
+
+
+    <div class="terminal-right">
+
+
+        <div class="moving-warning">
+            ⚠ EDUCATIONAL USE ONLY ⚠
+            &nbsp; DO NOT MISUSE THIS TOOL
+        </div>
+
+
+
+        <div class="creator-terminal">
+
+    <div id="hack-terminal"></div>
+
+</div>
+
+    </div>
+
+</footer>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
+<script>
+
+const terminal = document.getElementById("hack-terminal");
+
+const commands = [
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ hostname",
+"kali",
+
+"",
+
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ neofetch",
+
+"OS: Kali GNU/Linux",
+"Host: Mission Control",
+"Kernel: Linux 6.x",
+"Shell: bash",
+"Terminal: xterm-256color",
+"CPU: Intel Compatible",
+"Memory: 256MB / 2048MB",
+
+"",
+
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ whoami",
+"manas",
+
+"",
+
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ cat profile.txt",
+
+"Name        : MANAS KUMAR PRAJAPATI",
+"Role        : Computer Science Student",
+"Interest    : Ethical Security Research",
+"Skills      : HTML | CSS | JavaScript | Node.js | Express",
+"Instagram   : @manas.in",
+
+"",
+
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ systemctl status mission-control",
+
+"● mission-control.service - Live Tracker Dashboard",
+"Loaded: loaded",
+"Active: active (running)",
+"Tasks: 5",
+"Memory: 48.3M",
+
+"",
+
+"[INFO] WebSocket Connected",
+"[INFO] Waiting for Location Updates...",
+"[INFO] Dashboard Ready",
+
+"",
+
+"WARNING:",
+"This application is intended",
+"for educational purposes only.",
+
+"Always obtain authorization",
+"before testing any system.",
+
+"Respect privacy and applicable laws.",
+
+"",
+
+"┌──(root㉿kali)-[/home/manas]",
+"└─$ _",
+
+"[ SYSTEM ] Boot sequence initialized...",
+"[ SYSTEM ] Loading kernel modules...",
+"[ SYSTEM ] Verifying environment...",
+"[ OK ] Environment verified.",
+"[ OK ] Security policies loaded.",
+"[ OK ] Socket server detected.",
+"[ OK ] Mission Control initialized.",
+"",
+"> whoami",
+"MANAS KUMAR PRAJAPATI",
+"",
+"> profile --info",
+"Name        : MANAS KUMAR PRAJAPATI",
+"Role        : Computer Science Student",
+"Focus       : Ethical Hacking",
+"Skills      : JavaScript | Node.js | Express | HTML | CSS",
+"Instagram   : @manas.in",
+"Contact     : +91xxxxxxxx67",
+"Email       : m**********@gmail.com",
+"",
+"> project --status",
+"Project     : MANAS LIVE TRACKER",
+"Backend     : Express.js",
+"Realtime    : Socket.IO",
+"Maps        : Leaflet.js",
+"Tunnel      : Cloudflared",
+"Status      : ONLINE",
+"",
+"> diagnostics",
+"[ OK ] WebSocket connected.",
+"[ OK ] GPS receiver ready.",
+"[ OK ] Live marker synchronization enabled.",
+"[ OK ] Auto reconnect enabled.",
+"[ OK ] HTTPS tunnel active.",
+
+"[ OK ] Boot sequence completed.",
+"[ OK ] Initializing dashboard...",
+"[ OK ] Loading modules...",
+"[ OK ] Socket.IO connected.",
+"[ OK ] Leaflet map initialized.",
+"[ OK ] GPS listener active.",
+"[ OK ] Waiting for targets...",
+"[INFO] Syncing live locations...",
+"[INFO] Updating markers...",
+"[INFO] Refreshing dashboard...",
+"[INFO] Ping: " + (10 + Math.floor(Math.random()*50)) + " ms",
+"[INFO] Memory Usage: " + (100 + Math.floor(Math.random()*900)) + " MB",
+"[INFO] CPU Usage: " + Math.floor(Math.random()*100) + "%",
+"[INFO] Network: ONLINE",
+
+"> whoami",
+"MANAS KUMAR PRAJAPATI",
+
+"> profile",
+"Role      : Computer Science Student",
+"Interest  : Ethical Security Research",
+"Skills    : HTML | CSS | JavaScript | Node.js | Express",
+"Instagram : @manas.in",
+
+"[NOTICE] Educational Purpose Only",
+"[NOTICE] Respect Privacy",
+"[NOTICE] Authorized Testing Only",
+
+"> date",
+new Date().toString(),
+
+"> random",
+Math.random().toString(36).substring(2),
+
+"> checksum",
+(Math.random()*0xffffffff>>>0).toString(16).toUpperCase(),
+
+"> status",
+"Mission Control Running",
+
+"$ idle..."
+];
+
+const colors=[
+"#00ff00",
+"#00ffff",
+"#ffff00",
+"#ff5555",
+"#ff00ff",
+"#66ff66",
+"#00ffaa",
+"#ffffff",
+
+"",
+"> security --scan",
+"[ PASS ] Input validation loaded.",
+"[ PASS ] Cookie authentication enabled.",
+"[ PASS ] Session verified.",
+"[ PASS ] Connection encrypted.",
+"",
+"> logs",
+"[INFO] Waiting for target connection...",
+"[INFO] Listening for GPS packets...",
+"[INFO] Updating map markers...",
+"[INFO] Refreshing dashboard...",
+"",
+"> notice",
+"This software is developed for",
+"educational and authorized testing only.",
+"",
+"Unauthorized tracking or monitoring",
+"without permission may violate",
+"privacy laws and local regulations.",
+"",
+"Always obtain proper authorization",
+"before testing any system.",
+"",
+"> credits",
+"Created By : MANAS KUMAR PRAJAPATI",
+"Instagram  : @manas.in",
+"Role       : Ethical Hacker",
+"Status     : Online",
+"",
+"[ SYSTEM ] Monitoring...",
+"[ SYSTEM ] Receiving location updates...",
+"[ SYSTEM ] Sync complete.",
+"[ SYSTEM ] Waiting for new events...",
+"",
+"> help",
+"Commands:",
+"status",
+"logs",
+"profile",
+"diagnostics",
+"monitor",
+"clear",
+"",
+"[ SYSTEM ] Idle...",
+"[ SYSTEM ] Idle...",
+"[ SYSTEM ] Idle..."
+];
+
+
+
+
+
+
+
+
+function type(text,color,callback){
+
+    const line=document.createElement("div");
+
+    line.style.color=color;
+
+    terminal.appendChild(line);
+
+    let i=0;
+
+    const timer=setInterval(()=>{
+
+        line.textContent+=text[i]||"";
+
+        i++;
+
+        if(i>text.length){
+
+            clearInterval(timer);
+
+            if(terminal.children.length>12){
+                terminal.removeChild(terminal.firstChild);
+            }
+
+            callback();
+
+        }
+
+    },20);
+
+}
+
+function run(){
+
+    const txt=commands[Math.floor(Math.random()*commands.length)];
+
+    const color=colors[Math.floor(Math.random()*colors.length)];
+
+    type(txt,color,()=>{
+
+        setTimeout(run,150);
+
+    });
+
+}
+
+run();
+
+
+
+
+
+
+
+
+
+
+let lineIndex = 0;
+
+function typeLine() {
+
+    if (lineIndex >= commands.length) {
+
+        setTimeout(() => {
+
+            terminal.innerHTML = "";
+            lineIndex = 0;
+            typeLine();
+
+        }, 2500);
+
+        return;
+    }
+
+    const line = document.createElement("div");
+    line.className = "hack-line";
+
+    terminal.appendChild(line);
+
+    let charIndex = 0;
+
+    function typeChar() {
+
+        if (charIndex < commands[lineIndex].length) {
+
+            line.textContent += commands[lineIndex][charIndex];
+            charIndex++;
+
+            setTimeout(typeChar, 35);   // typing speed
+
+        } else {
+
+            lineIndex++;
+
+            if (terminal.children.length > 8) {
+                terminal.removeChild(terminal.firstChild);
+            }
+
+            setTimeout(typeLine, 350);
+
+        }
+
+    }
+
+    typeChar();
+
+}
+
+typeLine();
+
+
+
+
+
+
+
+
+
+
+
+const logBox=document.getElementById("terminal-log");
+const targets=document.getElementById("targets");
+
+
+function log(t){
+
+logBox.innerHTML += `<div>> ${t}</div>`;
+
+logBox.scrollTop=logBox.scrollHeight;
+
+}
+
+
+
+const map=L.map("map")
+.setView([20.5937,78.9629],5);
+
+
+
+const cyberMap = L.tileLayer(
+"https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=cb1_3vmw_1_dd75b3cef7543153dfdb462f",
+{
+    maxZoom:19,
+    attribution:"© OpenStreetMap © CARTO"
+}
+).addTo(map);
+
+
+
+const street = L.tileLayer(
+"https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+{
+maxZoom:19
+}
+);
+
+
+const satellite = L.tileLayer(
+    "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=YOUR_ARCGIS_API_KEY",
+    {
+        maxZoom: 19,
+        attribution:
+            "© Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+    }
+);
+
+
+cyberMap.addTo(map);
+
+
+L.control.layers({
+    "Cyber Map":cyberMap,
+    "Street":street,
+    "Satellite":satellite
+}).addTo(map);
+
+
+
+const markers={};
+
+const greenIcon = L.divIcon({
+
+    html: `
+    <div class="pulse"></div>
+    `,
+
+    className:"",
+
+    iconSize:[20,20]
+
+});
+
+let selected=null;
+
+
+
+function ensureMarker(id,lat,lng){
+
+
+if(!markers[id]){
+
+
+markers[id] = L.marker(
+    [lat,lng],
+    {
+        icon: greenIcon
+    }
+)
+.addTo(map)
+.bindPopup(id);
+
+
+const card=document.createElement("div");
+
+card.className="card";
+
+card.id="card-"+id;
+
+
+card.onclick=()=>{
+
+
+selected=id;
+
+
+let p=markers[id].getLatLng();
+
+
+map.setView(
+[p.lat,p.lng],
+15
+);
+
+
+markers[id].openPopup();
+
+
+};
+
+
+
+targets.appendChild(card);
+
+
+
+}
+
+
+
+markers[id].setLatLng(
+[lat,lng]
+);
+
+
+
+document.getElementById(
+"card-"+id
+).innerHTML=
+`
+<b>${id}</b>
+<br>
+Lat: ${lat.toFixed(5)}
+<br>
+Lng: ${lng.toFixed(5)}
+`;
+
+
+
+if(selected===id){
+
+map.panTo(
+[lat,lng]
+);
+
+}
+
+
+
+}
+
+
+
+
+// Existing targets from server
+
+{{ for(value,key in TARGETS) }}
+
+ensureMarker(
+"{{key}}",
+Number("{{value[0]}}"),
+Number("{{value[1]}}")
+);
+
+{{/}}
+
+
+
+
+const socket=io("",{
+
+path:"/socket.io",
+
+transports:["websocket"]
+
+});
+
+
+
+socket.on("connect",()=>{
+
+log("Connected");
+
+});
+
+
+
+socket.on("disconnect",()=>{
+
+log("Disconnected");
+
+});
+
+
+
+
+socket.on("user-connected",id=>{
+
+
+log(
+"Target connected : "+id
+);
+
+
+ensureMarker(
+id,
+20.5937,
+78.9629
+);
+
+
+});
+
+
+
+
+socket.on("map-data",data=>{
+
+
+log(
+"Location update : "+data.id
+);
+
+
+ensureMarker(
+data.id,
+Number(data.lat),
+Number(data.lng)
+);
+
+
+});
+
+
+
+socket.on("user-disconnected",id=>{
+
+
+log(
+"Target disconnected : "+id
+);
+
+
+if(markers[id]){
+
+map.removeLayer(
+markers[id]
+);
+
+delete markers[id];
+
+}
+
+
+document.getElementById(
+"card-"+id
+)?.remove();
+
+
+});
+
+
+
+log("Mission Control Ready");
+
+
+
+</script>
+
+
+</body>
+</html>
