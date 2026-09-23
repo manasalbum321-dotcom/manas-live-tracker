@@ -4,7 +4,7 @@
 ## Installation
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/manasalbum321-dotcom/manas-live-traker.git
+git clone https://github.com/manasalbum321-dotcom/manas-live-tracker.git
 cd manas-live-traker
 ```
 
